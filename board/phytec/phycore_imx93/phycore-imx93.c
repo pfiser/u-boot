@@ -71,6 +71,41 @@ err:
 	printf("Could not detect eMMC VDD-IO. Fall back to default.\n");
 }
 
+static void phy_reset_fixup(void *blob, struct phytec_eeprom_data *data)
+{
+	u8 pcb_rev = phytec_get_rev(data);
+
+	if (pcb_rev == PHYTEC_EEPROM_INVAL) {
+		pr_err("%s: Could not detect SOM revision\n", __func__);
+		return;
+	}
+
+	if (pcb_rev < 4) {
+		int res, node, offset;
+		char fec_path[64];
+
+		node = fdt_node_offset_by_compatible(blob, -1, "fsl,imx93-fec");
+		if (node < 0)
+			goto err;
+
+		res = fdt_get_path(blob, node, fec_path, sizeof(fec_path));
+		if (res < 0)
+			goto err;
+
+		offset = fdt_node_offset_by_pathf(blob, "%s/mdio/ethernet-phy@1", fec_path);
+		if (offset) {
+			fdt_delprop(blob, offset, "reset-gpios");
+			fdt_delprop(blob, offset, "reset-assert-us");
+		} else {
+			goto err;
+		}
+	}
+
+	return;
+err:
+	pr_err("%s: Could not find fec/ethernet-phy@1 node\n", __func__);
+}
+
 int board_fix_fdt(void *blob)
 {
 	struct phytec_eeprom_data data;
@@ -78,6 +113,8 @@ int board_fix_fdt(void *blob)
 	phytec_eeprom_data_setup(&data, 2, EEPROM_ADDR);
 
 	emmc_fixup(blob, &data);
+
+	phy_reset_fixup(blob, &data);
 
 	/* Update dtb clocks for low drive mode */
 	if (is_voltage_mode(VOLT_LOW_DRIVE))
@@ -89,6 +126,8 @@ int board_fix_fdt(void *blob)
 int ft_board_setup(void *blob, struct bd_info *bd)
 {
 	emmc_fixup(blob, NULL);
+
+	phy_reset_fixup(blob, NULL);
 
 	/**
 	 * NOTE: VOLT_LOW_DRIVE fixup is done by the ft_system_setup()
