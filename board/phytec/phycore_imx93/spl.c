@@ -149,6 +149,9 @@ int power_init_board(void)
 	else
 		pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS1, 0x4);
 
+	/* BUCK5 always FPWM mode */
+	pmic_reg_write(dev, PCA9450_BUCK5CTRL, 0x0d);
+
 	/* I2C_LT_EN*/
 	pmic_reg_write(dev, 0xa, 0x3);
 
