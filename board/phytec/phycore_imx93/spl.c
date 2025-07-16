@@ -14,10 +14,13 @@
 #include <asm/mach-imx/boot_mode.h>
 #include <asm/mach-imx/ele_api.h>
 #include <asm/sections.h>
+#include <dm/uclass.h>
+#include <dm/device.h>
 #include <init.h>
 #include <power/pmic.h>
 #include <power/pca9450.h>
 #include <spl.h>
+#include <sysreset.h>
 
 #include "../common/imx93_som_detection.h"
 
@@ -38,7 +41,20 @@ int spl_board_boot_device(enum boot_device boot_dev_spl)
 
 void spl_board_init(void)
 {
+	struct udevice *dev;
+	char status[32];
 	int ret;
+
+	if (CONFIG_IS_ENABLED(SYSRESET)) {
+		ret = uclass_get_device_by_driver(UCLASS_SYSRESET,
+						  DM_DRIVER_GET(pca9450_sysreset),
+						  &dev);
+		if (!ret) {
+			ret = sysreset_get_status(dev, status, sizeof(status));
+			if (!ret)
+				printf("%s\n", status);
+		}
+	}
 
 	ret = ele_start_rng();
 	if (ret)
