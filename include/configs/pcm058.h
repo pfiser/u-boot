@@ -44,10 +44,20 @@
 #define ENV_NAND \
 	"nandroot=ubi0:root ubi.mtd=rootfs\0" \
 	"nandrootfstype=ubifs\0" \
+	"fitvol=fit\0" \
+	"kernelvol=kernel\0" \
+	"oftreevol=oftree\0" \
 	"nandargs=setenv bootargs root=${nandroot} " \
 		"rootfstype=${nandrootfstype} ${mtdparts} ${optargs}\0" \
-	"nandloadfit=ubi part rootfs;ubi readvol ${loadaddr} fit\0" \
-	"nandboot=run nandloadfit;run nandargs;bootm ${loadaddr}\0"
+	"nandloadfit=ubi part rootfs;ubi readvol ${loadaddr} ${fitvol}\0" \
+	"nandloadimage=ubi readvol ${loadaddr} ${kernelvol}\0" \
+	"nandloadfdt=ubi readvol ${fdtaddr} ${oftreevol}\0" \
+	"nandboot=if run nandloadfit; then " \
+			"run nandargs; bootm ${loadaddr}; " \
+		"else " \
+			"run nandloadimage; run nandloadfdt; " \
+			"run nandargs; bootz ${loadaddr} - ${fdtaddr}; " \
+		"fi\0"
 
 #define CFG_EXTRA_ENV_SETTINGS \
 	"bootm_size=0x30000000\0" \
