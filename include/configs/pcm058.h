@@ -22,14 +22,24 @@
 /* Environment organization */
 #define ENV_MMC \
 	"mmcdev=0\0" \
-	"mmcpart=2\0" \
-	"fitpart=1\0" \
+	"mmcbootpart=1\0" \
+	"mmcrootpart=2\0" \
 	"mmcrootfstype=ext4\0" \
-	"fitname=fitImage\0" \
-	"mmcloadfit=load mmc ${mmcdev}:${fitpart} ${loadaddr} ${fitname}\0" \
-	"mmcargs=setenv bootargs root=/dev/mmcblk${mmcdev}p${mmcpart} " \
+	"fitimage=fitImage\0" \
+	"image=zImage\0" \
+	"fdtimage=oftree\0" \
+	"fdtaddr=0x18000000\0" \
+	"mmcloadfit=load mmc ${mmcdev}:${mmcbootpart} ${loadaddr} ${fitimage}\0" \
+	"mmcloadimage=load mmc ${mmcdev}:${mmcbootpart} ${loadaddr} ${image}\0" \
+	"mmcloadfdt=load mmc ${mmcdev}:${mmcbootpart} ${fdtaddr} ${fdtimage}\0" \
+	"mmcargs=setenv bootargs root=/dev/mmcblk${mmcdev}p${mmcrootpart} " \
 		"rootfstype=${mmcrootfstype} ${optargs}\0" \
-	"mmcboot=run mmcloadfit;run mmcargs;bootm ${loadaddr}\0"
+	"mmcboot=if run mmcloadfit; then " \
+			"run mmcargs; bootm ${loadaddr}; " \
+		"else " \
+			"run mmcloadimage; run mmcloadfdt; " \
+			"run mmcargs; bootz ${loadaddr} - ${fdtaddr}; " \
+		"fi\0"
 
 #define ENV_NAND \
 	"nandroot=ubi0:root ubi.mtd=rootfs\0" \
